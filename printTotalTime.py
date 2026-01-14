@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 MAX_NAME = 24
 
 defaultOptions = {
-        "ioForm": "%H:%M:%S %d.%m.%Y",
+        "ioForm": "%Y-%m-%d %H:%M:%S",
         "pathTime": "./times/",
         "autoClockOut": "00:00:00",
         "autoClockLim": "04:30:00",
@@ -13,13 +13,13 @@ defaultOptions = {
         "adminPass": "",
         "seasons": {
             "Build": {
-                "start": "00:00:00 06.01.2018",
-                "end": "23:59:59 20.02.2018",
+                "start": "2018-01-06 00:00:00",
+                "end": "2018-02-20 23:59:59",
                 "hoursPerWeek": 0
             },
             "Competition": {
-                "start": "00:00:00 21.03.2018",
-                "end": "23:59:59 14.04.2018",
+                "start": "2018-03-21 00:00:00",
+                "end": "218-04-14 23:59:59",
                 "hoursPerWeek": 0
             }
         },
@@ -113,22 +113,18 @@ def calcUserTime(opts, name, startIO=None, endIO=None):
         if checkTimes and datatime > endIO:
             break  # if left timeframe then finish
 
-    else:  # if finished with no breaks
-        # add current time if still signed in
-        if lastState == "i":
-            totalTime += (currentDate - lastTime).total_seconds()
-
     return totalTime
 
-opts = loadOpts()
-users = loadUsers(opts)
+if __name__ == '__main__':
 
-print("Name\tHours")
+    opts = loadOpts()
+    users = loadUsers(opts)
 
-for user in users:
-    name = user[0].strip()
-    position = user[2]
+    print("%24s\t%16s\t%s" % ("Name", "Position", "Hours"))
 
-    if "Student" == position:
+    for user in users:
+        name = user[0].strip()
+        position = user[2]
+
         totalTime = calcUserTime(opts, name)
-        print("%24s\t%4.1f" % (name, totalTime / 3600))
+        print("%24s\t%16s\t%5.1f" % (name, position, totalTime / 3600))

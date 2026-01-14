@@ -6,15 +6,15 @@ from math import floor
 from re import (compile as re_compile, fullmatch)
 from time import strftime
 
-import guiType
+maxName = 24
 
 ROMAN_NUMERAL_PATTERN = re_compile("(V|I)+", re.IGNORECASE)
 
 loadOptions = True
-defaultOptions = fileData = {"ioForm": "%H:%M:%S %d.%m.%Y", "pathTime": "./times/", "autoClockOut": "00:00:00",
+defaultOptions = fileData = {"ioForm": "%Y-%m-%d %H:%M:%S", "pathTime": "./times/", "autoClockOut": "00:00:00",
                              "autoClockLim": "04:30:00", "usernameFile": "usernameFile.txt", "adminPass": "",
-                             "seasons": {"Build": {"start": "00:00:00 06.01.2018", "end": "23:59:59 20.02.2018", "hoursPerWeek": 0},
-                                         "Competition": {"start": "00:00:00 21.03.2018", "end": "23:59:59 14.04.2018", "hoursPerWeek": 0}},
+                             "seasons": {"Build": {"start": "2018-01-06 00:00:00", "end": "2018-02-20 23:59:59", "hoursPerWeek": 0},
+                                         "Competition": {"start": "2018-03-21 00:00:00", "end": "2018-04-14 23:59:59", "hoursPerWeek": 0}},
                              "positions": ["Student", "Mentor", "Adult", "Other"],
                              "teams": ["Programming", "Mechanical", "Media", "Woodworking", "Mentors", "Other"]}
 
@@ -68,8 +68,11 @@ def signIO(n, c):
     if lines:
         lim = [int(x) for x in opts["autoClockLim"].split(":")]
 
+        lastEntry = lines[-1]
+        lastTimeEntry = lastEntry.split('|')[1].strip()
+
         theNow = datetime.now()
-        theIOA = datetime.strptime(lines[-1][5:], opts["ioForm"])
+        theIOA = datetime.strptime(lastTimeEntry, opts["ioForm"])
         theLIM = theIOA.replace(
             hour=lim[0], minute=lim[1], second=lim[2], microsecond=0) + timedelta(days=1)
 
@@ -223,8 +226,8 @@ def calcSeasonTime(name, season, ignoreCheck=False):
 
 
 def calcUserTime(name, startIO=None, endIO=None):
-    if len(name) > guiType.maxName:
-        name = name[:guiType.maxName]
+    if len(name) > maxName:
+        name = name[:maxName]
     filename = opts["pathTime"] + name.strip().replace(" ", "") + \
         ".txt"  # generate filename
 
@@ -313,10 +316,11 @@ def mkfile(t): open(t, "a+").close()  # make files if they dont exist
 
 
 def loadUsers():
-    allusers = {}
+    users = {}
     for line in open(opts["usernameFile"], "r+"):
         l = line.split(" | ")  # name | username | title | jobs
-        allusers[l[2]] = (allusers[l[2]] or []) + []
+        users[l[2]] = (users[l[2]] or []) + []
+    return users
 
 
 def calcSlackTimeString():

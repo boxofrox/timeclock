@@ -9,8 +9,6 @@ from tkinter import (Button, Checkbutton, Entry, Frame, IntVar, Label, Listbox,
 import ioServ
 import osk
 
-maxName = 24
-
 root = Tk()  # main window
 nuWin = None  # new user window
 qtWin = None  # quit password window
@@ -35,6 +33,8 @@ except FileExistsError:
 
 ioServ.mkfile(opts["usernameFile"])
 
+# activeUserList = 'all' | 'student' | 'other'
+activeUserList = 'all'
 
 allusers = {"all": [], "info": {}}
 jobusers = {"none": []}
@@ -157,7 +157,7 @@ def refreshListboxes(n=None):  # whenever someone signs in/out or theres a new u
     def __addtolistbox(nameIO, select):
         try:
             userFileName = (nameIO if len(nameIO) <
-                            maxName else nameIO[:maxName]).replace(" ", "")
+                            ioServ.maxName else nameIO[:ioServ.maxName]).replace(" ", "")
             with open(opts["pathTime"] + userFileName + ".txt", "r") as f:
                 inSeason = False
                 timet = 0
@@ -182,15 +182,15 @@ def refreshListboxes(n=None):  # whenever someone signs in/out or theres a new u
         weektime = floor(min(ioServ.calcWeekTime(nameIO) // 3600, 8))
         # print(nameIO, ioServ.calcWeekTime(nameIO)/3600)
         printName = nameIO
-        if len(printName) > maxName:
-            printName = printName[:maxName]
-        nameL.insert(select, printName + " " * (maxName + 1 - len(printName)) + ("." *
+        if len(printName) > ioServ.maxName:
+            printName = printName[:ioServ.maxName]
+        nameL.insert(select, printName + " " * (ioServ.maxName + 1 - len(printName)) + ("." *
                                                                                  weektime + " " * (8 - weektime)) + " " + timeIO + "  " + typeIO)
         nameL.itemconfig(select, {"fg": hoursToColor(nameIO)})
 
     ioServ.sortUsernameList()
 
-    allusers = {"all": [], "info": {}}
+    allusers = {"all": [], "info": {}, "student": [], "other": []}
     jobusers = {"none": []}
     for i in opts["positions"]:
         allusers[i] = []
@@ -206,6 +206,11 @@ def refreshListboxes(n=None):  # whenever someone signs in/out or theres a new u
         allusers["info"][name[0]] = {
             "initials": name[1], "title": name[2], "jobs": name[3]}
 
+        if "Student" == name[2]:
+            allusers['student'].append(name[0])
+        else:
+            allusers['other'].append(name[0])
+
     if n == "all" or n == None:
         nameL.delete(0, tk.END)
         ioServ.sortUsernameList()
@@ -213,9 +218,9 @@ def refreshListboxes(n=None):  # whenever someone signs in/out or theres a new u
         nameIO = ""
         select = 0
 
-        for name in allusers["all"]:
-            if len(name) > maxName:
-                name = name[:maxName]
+        for name in allusers[activeUserList]:
+            if len(name) > ioServ.maxName:
+                name = name[:ioServ.maxName]
             __addtolistbox(name, select)
             select += 1
 
@@ -271,7 +276,7 @@ def ioSign(c):
         return
 
     msg, color = ioServ.signIO(
-        nameL.get(nameL.curselection()[0])[:maxName].strip(), c)
+        nameL.get(nameL.curselection()[0])[:ioServ.maxName].strip(), c)
 
     refreshListboxes("single")
 
@@ -343,12 +348,97 @@ def updateLogo():
 def main():
     # *F = frame, *S = scroll, *L = list, *B = button, *T = text
     global nameL, infoT, logoImgs, logoL
+
+    f = "Courier 22 bold"
+
     listF = Frame(root, bg=glblBGC)
     listS = Scrollbar(listF, orient=tk.VERTICAL)
     nameL = Listbox(listF, selectmode=tk.SINGLE,
                     yscrollcommand=listS.set, font="Courier 22 bold", bg=glblBGC)
     nameL.config(width=42, height=20)
     listS.config(command=nameL.yview, width=52)
+
+    whichUserListF = Frame(listF, bg = glblBGC)
+
+    allB = studentB = otherB = None
+
+    def bgColor(expected):
+        global activeUserList
+
+        if expected == activeUserList:
+            return '#9af314'
+        else:
+            return '#101010'
+
+    def fgColor(expected):
+        global activeUserList
+
+        if expected == activeUserList:
+            return '#101010'
+        else:
+            return '#888888'
+
+    def selectUserList(name):
+        global activeUserList
+
+        activeUserList = name
+
+        if allB is not None:
+            allB['fg'] = fgColor('all')
+            allB['bg'] = bgColor('all')
+
+        if studentB is not None:
+            studentB['fg'] = fgColor('student')
+            studentB['bg'] = bgColor('student')
+
+        if otherB is not None:
+            otherB['fg'] = fgColor('other')
+            otherB['bg'] = bgColor('other')
+
+        refreshListboxes()
+
+        return None
+
+    allB = Button(
+        whichUserListF,
+        text = 'Show All',
+        font = f,
+        fg = fgColor('all'),
+        bg = bgColor('all'),
+        width = 12,
+        height = 2,
+        command = lambda: selectUserList('all'),
+    )
+
+    studentB = Button(
+        whichUserListF,
+        text = 'Show Students',
+        font = f,
+        fg = fgColor('student'),
+        bg = bgColor('student'),
+        width = 12,
+        height = 2,
+        command = lambda: selectUserList('student'),
+    )
+
+    otherB = Button(
+        whichUserListF,
+        text = 'Show Adults',
+        font = f,
+        fg = fgColor('other'),
+        bg = bgColor('other'),
+        width = 12,
+        height = 2,
+        command = lambda: selectUserList('other'),
+    )
+
+    allB.grid(row = 0, column = 0)
+    whichUserListF.grid_columnconfigure(1, weight = 1)
+    studentB.grid(row = 0, column = 2)
+    whichUserListF.grid_columnconfigure(3, weight = 1)
+    otherB.grid(row = 0, column = 4)
+
+    whichUserListF.pack(fill = tk.X, pady = 8)
 
     form = "Name" + " " * 30 + "hrs   i/o"
     Label(listF, text=form, font="Courier 22 bold", anchor=tk.W,
@@ -365,7 +455,6 @@ def main():
     logoL.pack()
     updateLogo()
 
-    f = "Courier 22 bold"
     ioF = Frame(root, bg=glblBGC)
     iIOB = Button(ioF, text="IN", font=f, bg="green", fg="white",
                   command=lambda: ioSign("i"), width=12, height=2)
